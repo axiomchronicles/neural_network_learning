@@ -13,7 +13,6 @@ venv/
 .ipynb_checkpoints
 
 # Data files (optional — keep if you want to version control data)
-*.csv
 *.tsv
 *.xlsx
 *.xls
