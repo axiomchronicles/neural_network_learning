@@ -37,3 +37,5 @@ Thumbs.db
 *.h5
 *.pkl
 *.joblib
+
+datasets/creditcard.csv
