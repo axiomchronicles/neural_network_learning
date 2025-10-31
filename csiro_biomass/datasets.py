@@ -26,7 +26,7 @@ DATA_LOADING_MODE = DataLoadingMode.Local # use "local to use it from you local 
 DATA_LOADING_LOCAL_URL = pathlib.Path = pathlib.Path().home() / "Downloads" / "csiro-biomass" # (object) pathlib.Path
 DATA_LOADING_KAGGEL_URL = "" # this url refer to kaggel house only use on submission
 
-def _load_csv():
+def load_csv_data():
     # csv FileType Loading Loading using pandas
     root: pathlib.Path = DATA_LOADING_LOCAL_URL if DataLoadingMode.Local else DATA_LOADING_KAGGEL_URL
     train_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TRAIN)
@@ -38,6 +38,10 @@ def _load_csv():
 class CsiroBiomassDataLoader(D.DataLoader): 
     def __init__(self, csv_file: pd.DataFrame, root: pathlib.Path, transform: T.transforms):
         super(CsiroBiomassDataLoader, self).__init__()
+
+        # CsiroBiomassDataLoader use to load the Traning Dataset which you can use to train and validate model
+        # This dataset doesn't contain much data so create a batch_size of (16, 32) if you go further memory can freeze
+        # Original Training image with the images and target use to train and val model use split_size of 0.8 & 0.2
 
         self.annonation = csv_file
         # Root path as pathlib.Path like (object) point towards the csiro-biomass data files
@@ -58,11 +62,12 @@ class CsiroBiomassDataLoader(D.DataLoader):
         # Torch Dataset required lenght of the dataset to return
         return len(self.grouped)
     
-    def __getitem__(self, idx):
+    def __getitem__(self, index):
         # Main (object like structure) split training data into image, target format (X, y) -> formally knowns
-        rows = self.annonation.iloc[idx]
+        rows = self.annonation.iloc[index]
         image_path = self.root / rows["image_path"]
         # Using PIL.Image to read the image files this runs on CPU (no acceleration here) -> CPU might Throttle
+        # Converion of image into RGB is essential, colour_channels of the image is 3 and the image shape is 4D
         image: Image = Image.open(image_path).convert("RGB")
 
         # Targeted columns are in string(dtype) requires to convet in to flot before changing them into torch.Tensor
@@ -77,3 +82,41 @@ class CsiroBiomassDataLoader(D.DataLoader):
         # Return Type tuple like object (image, target)
         # Use -> image, target = dataset
         return image, target
+    
+class CsiroBiomassTestDataLoader(D.Dataset):
+    def __init__(self, csv_file: pd.DataFrame, root: pathlib.Path, transform: T.transforms):
+        super(CsiroBiomassTestDataLoader, self).__init__()
+
+        # CsiroBiomassTestDataLoader is a Testing dataset only contain 5(rows) of data
+        # Use batch_size(1) default else data may lost or return type(NaN)
+        # This dataset can only use for evalute the model and to create the final (submission.csv) File
+
+        self.annonation = csv_file
+        # Root path (pathlib.Path) Type object for train.csv file 
+        self.root = pathlib.Path(root)
+        # Torchvision Transform (preprocessing) ToTensor, ImagePixel, Resize.
+        self.transform = transform
+
+    def __len__(self):
+        # Torch Dataset required lenght of the dataset to return
+        return len(self.annonation)
+    
+    def __getitem__(self, index):
+        rows = self.annonation.iloc[index]
+        image_path = self.root / rows["image_path"]
+        # Test Dataset only contain 1 Image and linked with 5 cols so it required co-current loading 
+        # Image colour_channel is 3 with the dimesion to 4 so it requires conversion to RGB
+        image: Image = Image.open(image_path).convert("RGB")
+
+        # For evaluation we don't need target as tensor wen can use the target to get the sample_id's
+        # Forwading the image to the model we can extract the prediction and build the submission file on it.
+        sampel_id = rows["sample_id"]
+        target = rows["target_name"]
+
+        # torch.Transforms if user passed the transform Compose
+        if self.transform:
+            image = self.transform(image)
+
+        # Tuple of 3
+        # use image, target, sid = testdataset
+        return image, target, sampel_id
