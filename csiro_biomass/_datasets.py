@@ -22,15 +22,16 @@ class FileTypeMode(enum.Enum):
     TRAIN_DIR: str = "train"
     TEST_DIR: str = "test"
 
-DATA_LOADING_MODE = DataLoadingMode.Local # use "local to use it from you local device, 'global' to use it on kaggel"
-DATA_LOADING_LOCAL_URL = pathlib.Path = pathlib.Path().home() / "Downloads" / "csiro-biomass" # (object) pathlib.Path
+DATA_LOADING_MODE = DataLoadingMode.Local.value # use "local to use it from you local device, 'global' to use it on kaggel"
+DATA_LOADING_LOCAL_URL = pathlib.Path = pathlib.Path(pathlib.Path.home() / "Downloads" / "csiro-biomass") # (object) pathlib.Path
 DATA_LOADING_KAGGEL_URL = "" # this url refer to kaggel house only use on submission
 
 def load_csv_data():
     # csv FileType Loading Loading using pandas
+    # print(FileTypeMode.TRAIN.value)
     root: pathlib.Path = DATA_LOADING_LOCAL_URL if DataLoadingMode.Local else DATA_LOADING_KAGGEL_URL
-    train_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TRAIN)
-    test_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TEST)
+    train_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TRAIN.value)
+    test_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TEST.value)
 
     # Return Type: pandas.DataFrame -> train.csv | test.csv File
     return train_csv, test_csv
