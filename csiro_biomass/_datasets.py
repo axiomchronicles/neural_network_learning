@@ -29,14 +29,14 @@ DATA_LOADING_KAGGEL_URL = "" # this url refer to kaggel house only use on submis
 def load_csv_data():
     # csv FileType Loading Loading using pandas
     # print(FileTypeMode.TRAIN.value)
-    root: pathlib.Path = DATA_LOADING_LOCAL_URL if DataLoadingMode.Local else DATA_LOADING_KAGGEL_URL
+    root: pathlib.Path = DATA_LOADING_LOCAL_URL if DataLoadingMode.Local.value else DATA_LOADING_KAGGEL_URL
     train_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TRAIN.value)
     test_csv: pd.DataFrame = pd.read_csv(filepath_or_buffer = root / FileTypeMode.TEST.value)
 
     # Return Type: pandas.DataFrame -> train.csv | test.csv File
     return train_csv, test_csv
 
-class CsiroBiomassDataLoader(D.DataLoader): 
+class CsiroBiomassDataLoader(D.Dataset): 
     def __init__(self, csv_file: pd.DataFrame, root: pathlib.Path, transform: T.transforms):
         super(CsiroBiomassDataLoader, self).__init__()
 
@@ -46,7 +46,7 @@ class CsiroBiomassDataLoader(D.DataLoader):
 
         self.annonation = csv_file
         # Root path as pathlib.Path like (object) point towards the csiro-biomass data files
-        self.root = pathlib.Path(root)
+        self.root = pathlib.Path(root) if isinstance(root, str) else root
         # Torchvision Transform (preprocessing) ToTensor, ImagePixel, Resize.
         self.transform = transform
 
@@ -65,7 +65,7 @@ class CsiroBiomassDataLoader(D.DataLoader):
     
     def __getitem__(self, index):
         # Main (object like structure) split training data into image, target format (X, y) -> formally knowns
-        rows = self.annonation.iloc[index]
+        rows = self.grouped.iloc[index]
         image_path = self.root / rows["image_path"]
         # Using PIL.Image to read the image files this runs on CPU (no acceleration here) -> CPU might Throttle
         # Converion of image into RGB is essential, colour_channels of the image is 3 and the image shape is 4D
@@ -94,7 +94,7 @@ class CsiroBiomassTestDataLoader(D.Dataset):
 
         self.annonation = csv_file
         # Root path (pathlib.Path) Type object for train.csv file 
-        self.root = pathlib.Path(root)
+        self.root = pathlib.Path(root) if isinstance(root, str) else root
         # Torchvision Transform (preprocessing) ToTensor, ImagePixel, Resize.
         self.transform = transform
 
