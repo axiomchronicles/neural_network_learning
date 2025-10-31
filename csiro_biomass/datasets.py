@@ -40,28 +40,40 @@ class CsiroBiomassDataLoader(D.DataLoader):
         super(CsiroBiomassDataLoader, self).__init__()
 
         self.annonation = csv_file
+        # Root path as pathlib.Path like (object) point towards the csiro-biomass data files
         self.root = pathlib.Path(root)
+        # Torchvision Transform (preprocessing) ToTensor, ImagePixel, Resize.
         self.transform = transform
 
+        # Grouped Transaction on pandas.DataFrame to sort the Row using the label form data(train.csv)
         self.grouped = (
             self.annonation
             .pivot_table(index = "image_path", columns = "target_name", values = "target")
             .reset_index()
         )
+        # Target coloums to use as lable which model's train on excluding the sample_id to avoid overfitting
         self.target_columns: list = ["Dry_Clover_g", "Dry_Dead_g", "Dry_Green_g", "Dry_Total_g", "GDM_g"]
 
     def __len__(self):
+        # Torch Dataset required lenght of the dataset to return
         return len(self.grouped)
     
     def __getitem__(self, idx):
+        # Main (object like structure) split training data into image, target format (X, y) -> formally knowns
         rows = self.annonation.iloc[idx]
         image_path = self.root / rows["image_path"]
+        # Using PIL.Image to read the image files this runs on CPU (no acceleration here) -> CPU might Throttle
         image: Image = Image.open(image_path).convert("RGB")
 
+        # Targeted columns are in string(dtype) requires to convet in to flot before changing them into torch.Tensor
         target_nums = pd.to_numeric(rows[self.target_columns], errors = "coerce").astype("float32")
+        # Tensor Formation
         target = torch.tensor(target_nums).type(torch.float32)
 
+        # Applying Transform if user passed the transform
         if self.transform:
             image = self.transform(image)
 
+        # Return Type tuple like object (image, target)
+        # Use -> image, target = dataset
         return image, target
