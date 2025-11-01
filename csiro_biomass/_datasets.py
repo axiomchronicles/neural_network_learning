@@ -72,9 +72,9 @@ class CsiroBiomassDataLoader(D.Dataset):
         image: Image = Image.open(image_path).convert("RGB")
 
         # Targeted columns are in string(dtype) requires to convet in to flot before changing them into torch.Tensor
-        target_nums = pd.to_numeric(rows[self.target_columns], errors = "coerce").astype("float32")
+        target_nums = pd.to_numeric(rows.loc[self.target_columns], errors="coerce").astype("float32")
         # Tensor Formation
-        target = torch.tensor(target_nums).type(torch.float32)
+        target = torch.tensor(target_nums.values).type(torch.float32)
 
         # Applying Transform if user passed the transform
         if self.transform:
