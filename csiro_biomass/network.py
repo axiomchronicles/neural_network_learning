@@ -80,3 +80,5 @@ class CsiroBiomassModel(torch.nn.Module):
         x = self.convolutional_layer3(x)
         x = self.regression(x)
         return x
+    
+# torch.nn.Bl
