@@ -41,3 +41,5 @@ Thumbs.db
 datasets/creditcard.csv
 datasets/*.csv
 datasets/*santander/
+datasets/Resume.csv
+*datasets/Resume.csv
