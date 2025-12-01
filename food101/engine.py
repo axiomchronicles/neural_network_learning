@@ -1,11 +1,13 @@
 import torch
 import matplotlib.pyplot as plt
+from tqdm.auto import tqdm
 
 from models.tinyvgg import TinyVGG
 from loader import create_dataset, load_dataset
 from training import train_modelv1
 from evaluate import eval_modelv1
 from torch.utils.tensorboard import SummaryWriter
+from torchmetrics.classification import Accuracy
 
 DEVICE = torch.device("mps") if torch.mps.is_available() else torch.device("cpu")
 
@@ -17,7 +19,7 @@ def execute(epochs: int = 10, dataset: torch.utils.data.DataLoader = None, model
     trainingLosses, trainingAccuracy = [], []
     testingLosses, testingAccuracy = [], []
 
-    for epoch in range(epochs):
+    for epoch in tqdm(range(epochs)):
         trainLoss, trainAccuracy = train_modelv1(dataset = dataset, model = model,
                                                 criterion = criterion, optimizer = optimizer,
                                                 accuracy_fn = accuracy_fn, device = device)
@@ -43,14 +45,21 @@ def execute(epochs: int = 10, dataset: torch.utils.data.DataLoader = None, model
                         }, global_step = epoch)
 
         writer.add_graph(model = model, input_to_model = 
-                        torch.randn([16, 3, 224, 224]).to(device))
+                        torch.randn([32, 3, 224, 224]).to(device))
+        
+        for i, pg in enumerate(optimizer.param_groups):
+            writer.add_scalar(f"LR/group_{i}", pg['lr'], epoch)
 
-        if epoch % (epochs * 0.2) == 0:
-            print(f"Training Losses: {trainLoss} | Training Accuracy: {trainAccuracy}")
-            print(f"Testing Losses: {testLoss} | Testing Accuracy: {testAccuracy} \n")
+        for name, param in model.named_parameters():
+            writer.add_histogram(f"weights/{name}", param, epoch)
+            if param.grad is not None:
+                writer.add_histogram(f"grads/{name}", param.grad, epoch)
+
+        # if epoch % (epochs * 0.2) == 0:
+        print(f"Training Losses: {trainLoss} | Training Accuracy: {trainAccuracy}")
+        print(f"Testing Losses: {testLoss} | Testing Accuracy: {testAccuracy} \n")
 
     writer.close()
-
 
 if __name__ == "__main__":
     # torch.backends.mps.matmul.allow_tf32 = True
@@ -59,7 +68,17 @@ if __name__ == "__main__":
     train_loader = load_dataset(train, batch_size = 32, shuffle = True, num_workers=4)
     test_loader = load_dataset(test, batch_size=32, shuffle=False, num_workers=4)
 
-    model = TinyVGG(in_features = 3, out_features = len(train.classes), hidden_units = 64).to(device = DEVICE, memory_format = torch.channels_last)
+    model = TinyVGG(in_features = 3, out_features = len(train.classes),
+                    hidden_units = 64).to(device = DEVICE, memory_format = torch.channels_last)
+    
+    ## Base Required Functions
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(params = model.parameters(), lr = 1e-3, weight_decay = 1e-4)
+    accuracy_fn = Accuracy(task = "multiclass", num_classes = len(train.classes)).to(device = DEVICE, memory_format = torch.channels_last)
+    writer = SummaryWriter()
+
+    execute(epochs = 10, dataset = train_loader, model = model, criterion = criterion,
+            optimizer = optimizer, accuracy_fn = accuracy_fn, device = DEVICE, writer=writer)
     # with torch.inference_mode():
     #     for image, target in train_loader:
     #         logits = model(image.to(DEVICE, memory_format = torch.channels_last))
