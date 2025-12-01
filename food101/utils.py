@@ -1,4 +1,5 @@
 import pathlib
+import torch
 
 from schema import Food101MetaData
 
@@ -29,6 +30,11 @@ def resolve_train_test_paths():
     test_resolve = [(food101root / path).with_suffix(".jpg").resolve() for path in test_modulas]
 
     return train_resolve, test_resolve
+
+def denormalizeImage(img):
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 1, 3)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 1, 3)
+    return img * std + mean
 
 # if __name__ == "__main__":
 #     train_resolve, test_resolve = resolve_train_test_paths()

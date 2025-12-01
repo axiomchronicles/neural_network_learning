@@ -32,9 +32,9 @@ def load_dataset(dataset: data.Dataset, batch_size: int = 1,
                            timeout = timeout)
     
 
-if __name__ == "__main__":
-    train, test = create_dataset()
-    train_loader = load_dataset(train, batch_size=32, shuffle=True)
-    # print(train_loader)
-    image, target = next(iter(train_loader))
-    print(image[0])
+# if __name__ == "__main__":
+#     train, test = create_dataset()
+#     train_loader = load_dataset(train, batch_size=32, shuffle=True)
+#     # print(train_loader)
+#     image, target = next(iter(train_loader))
+#     print(image[0])
