@@ -10,7 +10,7 @@ def eval_modelv1(dataset: torch.utils.data.DataLoader, model: torch.nn.Module,
     
     with torch.inference_mode():
         for batch_idx, (image, target) in enumerate(dataset):
-            image, target = image.to(device = device, memory_format = torch.channels_last), target.to(device)
+            image, target = image.to(device = device), target.to(device)
 
             predictionLogits = model(image)
             modelPrediction = predictionLogits.argmax(dim = 1)

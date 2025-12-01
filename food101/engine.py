@@ -11,20 +11,20 @@ from torchmetrics.classification import Accuracy
 
 DEVICE = torch.device("mps") if torch.mps.is_available() else torch.device("cpu")
 
-def execute(epochs: int = 10, dataset: torch.utils.data.DataLoader = None, model: torch.nn.Module = None,
-                criterion = None, optimizer: torch.optim.Optimizer = None, accuracy_fn = None, device = "cpu",
-                writer: SummaryWriter = None):
+def execute(epochs: int = 10, train_dataset: torch.utils.data.DataLoader = None, test_dataset: torch.utils.data.DataLoader = None, 
+                model: torch.nn.Module = None, criterion = None, optimizer: torch.optim.Optimizer = None, 
+                accuracy_fn = None, device = "cpu", writer: SummaryWriter = None):
     
     totalEpochs = []
     trainingLosses, trainingAccuracy = [], []
     testingLosses, testingAccuracy = [], []
 
     for epoch in tqdm(range(epochs)):
-        trainLoss, trainAccuracy = train_modelv1(dataset = dataset, model = model,
+        trainLoss, trainAccuracy = train_modelv1(dataset = train_dataset, model = model,
                                                 criterion = criterion, optimizer = optimizer,
                                                 accuracy_fn = accuracy_fn, device = device)
         
-        testLoss, testAccuracy = eval_modelv1(dataset = dataset, model = model,
+        testLoss, testAccuracy = eval_modelv1(dataset = test_dataset, model = model,
                                                 criterion = criterion,
                                                 accuracy_fn = accuracy_fn, device = device)
         
@@ -43,9 +43,8 @@ def execute(epochs: int = 10, dataset: torch.utils.data.DataLoader = None, model
                             "train_acc": trainAccuracy,
                             "test_acc": testAccuracy
                         }, global_step = epoch)
-
-        writer.add_graph(model = model, input_to_model = 
-                        torch.randn([32, 3, 224, 224]).to(device))
+        
+        # writer.add_graph(model = model, input_to_model = torch.randn([32, 3, 224, 224]).to(device))
         
         for i, pg in enumerate(optimizer.param_groups):
             writer.add_scalar(f"LR/group_{i}", pg['lr'], epoch)
@@ -65,19 +64,19 @@ if __name__ == "__main__":
     # torch.backends.mps.matmul.allow_tf32 = True
     train, test = create_dataset()
     # print(len(train.annotation))
-    train_loader = load_dataset(train, batch_size = 32, shuffle = True, num_workers=4)
-    test_loader = load_dataset(test, batch_size=32, shuffle=False, num_workers=4)
+    train_loader = load_dataset(train, batch_size = 32, shuffle = True, num_workers=0)
+    test_loader = load_dataset(test, batch_size=32, shuffle=False, num_workers=0)
 
     model = TinyVGG(in_features = 3, out_features = len(train.classes),
-                    hidden_units = 64).to(device = DEVICE, memory_format = torch.channels_last)
+                    hidden_units = 64).to(device = DEVICE)
     
     ## Base Required Functions
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(params = model.parameters(), lr = 1e-3, weight_decay = 1e-4)
-    accuracy_fn = Accuracy(task = "multiclass", num_classes = len(train.classes)).to(device = DEVICE, memory_format = torch.channels_last)
+    accuracy_fn = Accuracy(task = "multiclass", num_classes = len(train.classes)).to(device = DEVICE)
     writer = SummaryWriter()
 
-    execute(epochs = 10, dataset = train_loader, model = model, criterion = criterion,
+    execute(epochs = 10, train_dataset = train_loader, test_dataset = test_loader, model = model, criterion = criterion,
             optimizer = optimizer, accuracy_fn = accuracy_fn, device = DEVICE, writer=writer)
     # with torch.inference_mode():
     #     for image, target in train_loader:
