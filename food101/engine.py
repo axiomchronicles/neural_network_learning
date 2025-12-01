@@ -8,6 +8,7 @@ from training import train_modelv1
 from evaluate import eval_modelv1
 from torch.utils.tensorboard import SummaryWriter
 from torchmetrics.classification import Accuracy
+from torch.utils.data import Subset
 
 DEVICE = torch.device("mps") if torch.mps.is_available() else torch.device("cpu")
 
@@ -44,7 +45,7 @@ def execute(epochs: int = 10, train_dataset: torch.utils.data.DataLoader = None,
                             "test_acc": testAccuracy
                         }, global_step = epoch)
         
-        # writer.add_graph(model = model, input_to_model = torch.randn([32, 3, 224, 224]).to(device))
+        writer.add_graph(model = model, input_to_model = torch.randn([32, 3, 224, 224]).to(device))
         
         for i, pg in enumerate(optimizer.param_groups):
             writer.add_scalar(f"LR/group_{i}", pg['lr'], epoch)
@@ -63,12 +64,14 @@ def execute(epochs: int = 10, train_dataset: torch.utils.data.DataLoader = None,
 if __name__ == "__main__":
     # torch.backends.mps.matmul.allow_tf32 = True
     train, test = create_dataset()
+    small_train = Subset(train, range(4000))
+    small_test = Subset(test, range(1000))
     # print(len(train.annotation))
-    train_loader = load_dataset(train, batch_size = 32, shuffle = True, num_workers=0)
-    test_loader = load_dataset(test, batch_size=32, shuffle=False, num_workers=0)
+    train_loader = load_dataset(small_train, batch_size = 32, shuffle = True, num_workers=4)
+    test_loader = load_dataset(small_test, batch_size=32, shuffle=False, num_workers=4)
 
     model = TinyVGG(in_features = 3, out_features = len(train.classes),
-                    hidden_units = 64).to(device = DEVICE)
+                    hidden_units = 32).to(device = DEVICE)
     
     ## Base Required Functions
     criterion = torch.nn.CrossEntropyLoss()

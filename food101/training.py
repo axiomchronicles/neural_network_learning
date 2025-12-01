@@ -11,6 +11,8 @@ def train_modelv1(dataset: torch.utils.data.DataLoader, model: torch.nn.Module,
     for batch_idx, (image, target) in enumerate(dataset):
         image, target = image.to(device = device), target.to(device)
 
+        # print(f"Image Shape: {image.shape}")
+
         predictionLogits = model(image)
         modelPrediction = predictionLogits.argmax(dim = 1)
 
