@@ -43,3 +43,8 @@ datasets/*.csv
 datasets/*santander/
 datasets/Resume.csv
 *datasets/Resume.csv
+datasets/food-101/
+datasets/food-101/images/
+datasets/food-101/meta/
+datasets/food-101/images/*
+datasets/food-101/meta/*

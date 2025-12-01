@@ -5,27 +5,25 @@ def train_modelv1(dataset: torch.utils.data.DataLoader, model: torch.nn.Module,
                 criterion, optimizer: torch.optim.Optimizer, accuracy_fn = None, device = "cpu"):
     
     running_loss = 0.0
-    model.eval()
+    model.train()
     accuracy_fn.reset()
 
-    with torch.inference_mode():
-        for batch_idx, (image, target) in enumerate(dataset):
-            image, target = image.to(device = device, memory_format = torch.channels_last),
-            target.to(device = device, memory_format = torch.channels_last)
+    for batch_idx, (image, target) in enumerate(dataset):
+        image, target = image.to(device = device, memory_format = torch.channels_last), target.to(device)
 
-            predictionLogits = model(image)
-            modelPrediction = predictionLogits.argmax(dim = 1)
+        predictionLogits = model(image)
+        modelPrediction = predictionLogits.argmax(dim = 1)
 
-            trainingloss = criterion(predictionLogits, target)
-            optimizer.zero_grad()
+        trainingloss = criterion(predictionLogits, target)
+        optimizer.zero_grad()
 
-            trainingloss.backward()
-            optimizer.step()
+        trainingloss.backward()
+        optimizer.step()
 
-            running_loss += trainingloss.item()
-            accuracy_fn.update(target, modelPrediction)
+        running_loss += trainingloss.item()
+        accuracy_fn.update(target, modelPrediction)
 
-        averageLoss = running_loss / len(dataset)
-        averageAccuracy = accuracy_fn.compute().item()
+    averageLoss = running_loss / len(dataset)
+    averageAccuracy = accuracy_fn.compute().item()
 
-        return (averageLoss, averageAccuracy)
+    return (averageLoss, averageAccuracy)
