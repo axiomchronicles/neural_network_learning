@@ -5,6 +5,7 @@ TrainTransformV1 = T.Compose([
     T.Resize(size = (224, 224)),
     T.RandomHorizontalFlip(p = 0.5),
     T.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
+    T.TrivialAugmentWide(num_magnitude_bins=31),
     T.PILToTensor(),
     # T.ToImage(),
     T.ToDtype(dtype = torch.float32, scale = True),
